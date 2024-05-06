@@ -17,11 +17,14 @@ class DrawingEditor:
         self.centre_x = self.width / 2
         self.centre_y = self.height / 2
 
-        self.draw_line_button = tk.Button(master, text="Draw Line", command=self.start_draw_line)
-        self.draw_line_button.pack(side=tk.LEFT)
+        self.draw_button = tk.Menubutton(master, text="Draw", relief="raised")
+        self.draw_button.pack(side=tk.LEFT)
+        self.draw_button.menu = tk.Menu(self.draw_button, tearoff=0)
+        self.draw_button["menu"] = self.draw_button.menu
 
-        self.draw_rect_button = tk.Button(master, text="Draw Rectangle", command=self.start_draw_rectangle)
-        self.draw_rect_button.pack(side=tk.LEFT)
+        # Add options to the dropdown menu
+        self.draw_button.menu.add_command(label="Line", command=self.start_draw_line)
+        self.draw_button.menu.add_command(label="Rectangle", command=self.start_draw_rectangle)
 
         self.select_button = tk.Button(master, text="Select", command=self.start_select)
         self.select_button.pack(side=tk.LEFT)
