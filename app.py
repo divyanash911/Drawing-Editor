@@ -61,6 +61,9 @@ class DrawingEditor:
 
 
     def open_xml(self):
+
+        self.canvas.delete("all")
+
         file=simpledialog.askstring(title='Open',prompt="Enter file name: ",parent=self.master)
         f_name = file
         if not file or (file.find(".xml") == -1 and file.find(".txt")==-1) :
@@ -81,9 +84,14 @@ class DrawingEditor:
                     upper_left = line[line.index("<upper_left>") + 12:line.index("</upper_left>")].split(",")
                     lower_right = line[line.index("<lower_right>") + 13:line.index("</lower_right>")].split(",")
                     color = line[line.index("<color>") + 7:line.index("</color>")]
-                    shape = self.canvas.create_rectangle(upper_left[0], upper_left[1], lower_right[0], lower_right[1], outline=color)
+                    style = line[line.index("<style>") + 7:line.index("</style>")]
+                    if style == "rounded":
+                        shape = self.canvas.create_rectangle(upper_left[0], upper_left[1], lower_right[0], lower_right[1], outline=color,dash=(4,4))
+                    elif style == "sharp":   
+                        shape = self.canvas.create_rectangle(upper_left[0], upper_left[1], lower_right[0], lower_right[1], outline=color)
                     self.item_state[shape] = color
                     self.current_items.add(shape)
+                
 
         elif f_name.find(".txt") != -1:
             for line in file:
@@ -99,12 +107,21 @@ class DrawingEditor:
                     line = line.split(" ")
                     line[2]=line[2].replace("\n","")
                     coords = line[1].split(",")
-                    shape = self.canvas.create_rectangle(coords[0], coords[1], coords[2], coords[3], outline=line[2])
+                    style = line[3]
+                    if style == "rounded":
+                        shape = self.canvas.create_rectangle(coords[0], coords[1], coords[2], coords[3], outline=line[2],dash=(4,4))
+                    elif style == "sharp":
+                        shape = self.canvas.create_rectangle(coords[0], coords[1], coords[2], coords[3], outline=line[2])
                     self.item_state[shape] = line[2]
                     self.current_items.add(shape)
         
         file.close()
 
+    def getdash(self,item):
+        if self.canvas.itemcget(item,"dash") == (4,4):
+            return "rounded"
+        else:
+            return "sharp"
 
     def save_ascii(self):
 
@@ -116,9 +133,9 @@ class DrawingEditor:
         op_file = open(op_file_name, "w")
         for item in self.current_items:
             if self.canvas.type(item).lower() == "line":
-                output_string += f"Line: {self.canvas.coords(item)[0]},{self.canvas.coords(item)[1]},{self.canvas.coords(item)[2]},{self.canvas.coords(item)[3]} {self.canvas.itemcget(item,"fill")}\n"
+                output_string += f"line {self.canvas.coords(item)[0]},{self.canvas.coords(item)[1]},{self.canvas.coords(item)[2]},{self.canvas.coords(item)[3]} {self.canvas.itemcget(item,"fill")}\n"
             elif self.canvas.type(item).lower() == "rectangle":
-                output_string += f"Rectangle: {self.canvas.coords(item)[0]},{self.canvas.coords(item)[1]},{self.canvas.coords(item)[2]},{self.canvas.coords(item)[3]} {self.canvas.itemcget(item,"outline")}\n"
+                output_string += f"rectangle {self.canvas.coords(item)[0]},{self.canvas.coords(item)[1]},{self.canvas.coords(item)[2]},{self.canvas.coords(item)[3]} {self.canvas.itemcget(item,"outline")} {self.getdash(item)}\n"
         if output_string == "":
             output_string = "No items to save"
         else:
@@ -139,7 +156,7 @@ class DrawingEditor:
             if self.canvas.type(item).lower() == "line":
                 output_string += f"<line><begin>{self.canvas.coords(item)[0]},{self.canvas.coords(item)[1]}</begin><end>{self.canvas.coords(item)[2]},{self.canvas.coords(item)[3]}</end><color>{self.canvas.itemcget(item,'fill')}</color></line>\n"
             elif self.canvas.type(item).lower() == "rectangle":
-                output_string += f"<rectangle><upper_left>{self.canvas.coords(item)[0]},{self.canvas.coords(item)[1]}</upper_left><lower_right>{self.canvas.coords(item)[2]},{self.canvas.coords(item)[3]}</lower_right><color>{self.canvas.itemcget(item,'outline')}</color></rectangle>\n"
+                output_string += f"<rectangle><upper_left>{self.canvas.coords(item)[0]},{self.canvas.coords(item)[1]}</upper_left><lower_right>{self.canvas.coords(item)[2]},{self.canvas.coords(item)[3]}</lower_right><color>{self.canvas.itemcget(item,'outline')}</color><style>{self.getdash(item)}</style></rectangle>\n"
         if output_string == "":
             output_string = "No items to save"
         else:
