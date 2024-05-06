@@ -168,7 +168,7 @@ class DrawingEditor:
             self.canvas.delete(self.current_shape)
         shape = self.canvas.create_line(self.start_x, self.start_y, event.x, event.y, fill="black")
         
-        self.item_state[shape] = "black"
+        self.item_state[tuple(self.canvas.coords(shape))] = "black"
         self.current_items.add(shape)
         self.reset_draw_mode()
 
@@ -195,7 +195,7 @@ class DrawingEditor:
             self.canvas.delete(self.current_shape)
         shape=self.canvas.create_rectangle(self.start_x, self.start_y, event.x, event.y, outline="black")
         
-        self.item_state[shape] = "black"
+        self.item_state[tuple(self.canvas.coords(shape))] = "black"
         self.current_items.add(shape)
         self.reset_draw_mode()
 
@@ -228,12 +228,14 @@ class DrawingEditor:
             self.selection_rectangle = self.canvas.create_rectangle(self.start_x, self.start_y, self.start_x, self.start_y, outline="black")
         elif not self.select_mode:
             for item in self.selected_objects:
-                
+                print(self.item_state)
                 try:
-                        self.canvas.itemconfig(item, outline="black", width=2)
+                        if tuple(self.canvas.coords(item)) in self.item_state:
+                            self.canvas.itemconfig(item, outline=self.item_state[tuple(self.canvas.coords(item))], width=2)
                 except:
-                        print(self.item_state)
-                        self.canvas.itemconfig(item, fill="black", width=2)
+                        if tuple(self.canvas.coords(item)) in self.item_state:
+                            self.canvas.itemconfig(item, fill=self.item_state[tuple(self.canvas.coords(item))], width=2)
+                        
             
             self.remove_menu()
 
@@ -267,8 +269,6 @@ class DrawingEditor:
     def on_click_copy(self, event):
         self.start_x = event.x
         self.start_y = event.y
-
-
 
         for item in self.selected_objects:
             if self.canvas.type(item) == "line":
@@ -307,7 +307,7 @@ class DrawingEditor:
                 self.canvas.delete(self.selection_rectangle)
             self.end_x = event.x
             self.end_y = event.y
-            self.selection_rectangle = self.canvas.create_rectangle(self.start_x, self.start_y, self.end_x, self.end_y, outline="black")
+            self.selection_rectangle = self.canvas.create_rectangle(self.start_x, self.start_y, self.end_x, self.end_y, outline="black",dash=(4,4))
 
     def start_edit(self):
 
@@ -318,7 +318,7 @@ class DrawingEditor:
                 new_inp=new_inp.lower()
                 if new_inp == "red" or new_inp == "blue" or new_inp == "green" or new_inp == "yellow":
                     self.canvas.itemconfig(item, fill=new_inp)
-                    self.item_state[item] = new_inp
+                    self.item_state[tuple(self.canvas.coords(item))]=new_inp
                         
                 else:
                     simpledialog.messagebox.showinfo("Error", "Invalid color")
@@ -332,14 +332,14 @@ class DrawingEditor:
                     new_inp = new_inp.lower()
                     if new_inp == "red" or new_inp == "blue" or new_inp == "green" or new_inp == "yellow":
                         self.canvas.itemconfig(item, outline=new_inp)
-                        self.item_state[item]=new_inp
+                        self.item_state[tuple(self.canvas.coords(item))]=new_inp
                     else:
                         simpledialog.messagebox.showinfo("Error", "Invalid color")
                 elif new_inp.lower() == "style":
                     # new_inp.destroy()
                     new_inp = simpledialog.askstring(title='Edit',prompt="Enter new style(sharp or rounded corners): ",parent=self.master)
                     if new_inp == "rounded":
-                        self.canvas.itemconfig(item,outline="black", width=2)
+                        self.canvas.itemconfig(item,outline="black",dash=(4,4))
                     elif new_inp == "sharp":
                         self.canvas.itemconfig(item, outline="black")
                     else:
@@ -350,7 +350,7 @@ class DrawingEditor:
 
     def start_group(self):
 
-         
+        
 
         pass
 
