@@ -53,10 +53,11 @@ class DrawingEditor:
 
         self.group_button = None
         self.edit_button = None
+        self.ungrp_button = None
 
         self.item_state = {}
-
-        self.groups = []
+        self.selected_objects = set()  # Declaration of selected_objects
+        self.group_items = {}
 
 
     def open_xml(self):
@@ -220,6 +221,10 @@ class DrawingEditor:
             self.edit_button.destroy()
         if self.group_button:
             self.group_button.destroy()
+        if self.ungrp_button:
+            self.ungrp_button.destroy()
+
+        self.selected_objects.clear()
 
 
     def on_click(self, event):
@@ -231,7 +236,7 @@ class DrawingEditor:
             self.selection_rectangle = self.canvas.create_rectangle(self.start_x, self.start_y, self.start_x, self.start_y, outline="black")
         elif not self.select_mode:
             for item in self.selected_objects:
-                print(self.item_state)
+                # print(self.item_state)
                 try:
                         if tuple(self.canvas.coords(item)) in self.item_state:
                             self.canvas.itemconfig(item, outline=self.item_state[tuple(self.canvas.coords(item))], width=2)
@@ -254,6 +259,7 @@ class DrawingEditor:
         
         self.selected_objects.clear()
         self.del_button.destroy()
+        self.remove_menu()
 
     def start_copy(self):
 
@@ -353,13 +359,56 @@ class DrawingEditor:
 
     def start_group(self):
 
-        
+        selected_items = list(self.selected_objects)
+        if len(selected_items) < 2:
+            return
+
+        group_id = self.create_group(selected_items)
+
+        for item in selected_items:
+            self.group_items[item] = group_id
+
 
         pass
+
+    def create_group(self, selected_items):
+        #create bounding box
+
+        min_x = self.width
+        min_y = self.height
+        max_x = 0
+        max_y = 0
+
+        for item in selected_items:
+            if item:
+                coords = self.canvas.coords(item)
+                if coords:
+                    min_x = min(min_x, coords[0], coords[2])
+                    min_y = min(min_y, coords[1], coords[3])
+                    max_x = max(max_x, coords[0], coords[2])
+                    max_y = max(max_y, coords[1], coords[3])
+
+        group_id = tuple((min_x, min_y, max_x, max_y))
+        return group_id
+
 
     def on_release(self, event):
         if self.select_mode:  
             selected_items = self.canvas.find_overlapping(self.start_x, self.start_y, self.end_x, self.end_y)
+
+            neighbour = []
+            flag=0
+            for item in selected_items:
+                gp_id = self.group_items.get(item)
+                if gp_id:
+                    for neighbours in self.group_items:
+                        if self.group_items[neighbours] == gp_id and neighbours!=item:
+                            neighbour.append(neighbours)
+                            flag=1
+            
+            selected_items = selected_items + tuple(neighbour)           
+
+        # Update selected_objects set
             for item in selected_items:
                 if item not in self.selected_objects:
                     self.selected_objects.add(item)
@@ -367,6 +416,19 @@ class DrawingEditor:
                         self.canvas.itemconfig(item, outline="red", width=2)
                     except:
                         self.canvas.itemconfig(item, fill="red", width=2)
+
+            if flag==1:
+                self.ungrp_button = tk.Button(self.master, text="Ungroup", command=self.start_ungroup)
+                self.ungrp_button.pack(side=tk.LEFT)
+
+
+            # for item in selected_items:
+            #     if item not in self.selected_objects:
+            #         self.selected_objects.add(item)
+            #         try:
+            #             self.canvas.itemconfig(item, outline="red", width=2)
+            #         except:
+            #             self.canvas.itemconfig(item, fill="red", width=2)
 
             if len(self.selected_objects) > 1:
                 self.del_button = tk.Button(self.master, text="Delete", command=self.start_delete)
@@ -390,10 +452,26 @@ class DrawingEditor:
             self.canvas.delete(self.selection_rectangle)
             self.select_mode = False
 
+    def start_ungroup(self):
+        for item in self.selected_objects:
+            if item in self.group_items:
+                del self.group_items[item]
+                self.selected_objects.remove(item)
+            try:
+                if tuple(self.canvas.coords(item)) in self.item_state:
+                    self.canvas.itemconfig(item, outline=self.item_state[tuple(self.canvas.coords(item))], width=2)
+            except:
+                if tuple(self.canvas.coords(item)) in self.item_state:
+                    self.canvas.itemconfig(item, fill=self.item_state[tuple(self.canvas.coords(item))], width=2)
+                
+        self.ungrp_button.destroy()
+        self.remove_menu()
+
     def reset_draw_mode(self):
         self.canvas.unbind("<Button-1>")
         self.canvas.unbind("<B1-Motion>")
         self.canvas.unbind("<ButtonRelease-1>")
+        
 
 def main():
     root = tk.Tk()
